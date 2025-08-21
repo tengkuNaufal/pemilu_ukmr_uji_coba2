@@ -32,19 +32,34 @@ app.post('/api/login', async (req, res) => {
     if (!await bcrypt.compare(password, user.password_hash)) {
       return res.status(401).json({ message: 'Password salah' });
     }
-    // tambahkan `is_admin` ke dalam token klo udh ad di database
-    const tokenPayload = { 
-        user_id: user.id, 
-        nim: user.nim,
-        is_admin: user.is_admin || false // anggap `is_admin` ad di tabel users
-    };
-    
-    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '2h' });
-    res.json({ token, is_admin: user.is_admin || false }); // kirim status admin ke frontend
+    const token = jwt.sign({ user_id: user.id, nim: user.nim, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '2h' });
+    res.json({ token });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
+});
+
+// LOGIN ADMIN
+app.post('/api/admin/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const result = await db.query('SELECT * FROM admins WHERE username = $1', [username]);
+        if (result.rows.length === 0) {
+            return res.status(401).json({ message: 'Username tidak ditemukan' });
+        }
+
+        const admin = result.rows[0];
+        if (!await bcrypt.compare(password, admin.password_hash)) {
+            return res.status(401).json({ message: 'Password salah' });
+        }
+
+        const token = jwt.sign({ admin_id: admin.id, username: admin.username, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '2h' });
+        res.json({ token });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
 // Middleware auth
@@ -81,6 +96,9 @@ app.get('/api/candidates', auth, async (req, res) => {
 
 // Vote
 app.post('/api/vote', auth, async (req, res) => {
+  if (req.user.role !== 'user') {
+      return res.status(403).json({ message: 'Admin tidak bisa memilih.' });
+  }
   const user_id = req.user.user_id;
   const { candidate_id } = req.body;
   try {
@@ -122,5 +140,4 @@ app.get('/api/admin/results', auth, adminOnly, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
