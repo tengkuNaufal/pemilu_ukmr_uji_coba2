@@ -32,9 +32,15 @@ app.post('/api/login', async (req, res) => {
     if (!await bcrypt.compare(password, user.password_hash)) {
       return res.status(401).json({ message: 'Password salah' });
     }
-
-    const token = jwt.sign({ user_id: user.id, nim: user.nim }, process.env.JWT_SECRET, { expiresIn: '2h' });
-    res.json({ token });
+    // tambahkan `is_admin` ke dalam token klo udh ad di database
+    const tokenPayload = { 
+        user_id: user.id, 
+        nim: user.nim,
+        is_admin: user.is_admin || false // anggap `is_admin` ad di tabel users
+    };
+    
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '2h' });
+    res.json({ token, is_admin: user.is_admin || false }); // kirim status admin ke frontend
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -52,6 +58,14 @@ function auth(req, res, next) {
   } catch {
     res.status(401).json({ message: 'Token tidak valid' });
   }
+}
+
+// middleware utk admin
+function adminOnly(req, res, next) {
+    if (!req.user || !req.user.is_admin) {
+        return res.status(403).json({ message: 'Akses ditolak: hanya untuk admin' });
+    }
+    next();
 }
 
 // Get candidates
@@ -83,16 +97,26 @@ app.post('/api/vote', auth, async (req, res) => {
   }
 });
 
-// Result
-app.get('/api/result', auth, async (req, res) => {
+// Result untuk admin
+app.get('/api/admin/results', auth, adminOnly, async (req, res) => {
   try {
     const result = await db.query(`
       SELECT c.nama, COUNT(v.id) AS total_suara
       FROM candidates c
       LEFT JOIN votes v ON v.candidate_id = c.id
       GROUP BY c.id
+      ORDER BY total_suara DESC
     `);
-    res.json(result.rows);
+    
+    const voteCounts = result.rows;
+    const totalVotes = voteCounts.reduce((sum, current) => sum + parseInt(current.total_suara, 10), 0);
+    
+    const resultsWithPercentage = voteCounts.map(c => ({
+        ...c,
+        percentage: totalVotes > 0 ? ((c.total_suara / totalVotes) * 100).toFixed(2) : 0
+    }));
+
+    res.json(resultsWithPercentage);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
