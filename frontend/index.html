@@ -15,13 +15,82 @@
         transform: scale(1.05);
       }
     }
+    
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+    
     .animate-pulse-custom {
       animation: pulse 2s infinite;
     }
+    
+    .animate-spin-slow {
+      animation: spin 8s linear infinite;
+    }
+
+    /* Styles for zigzag animation */
+    .square {
+      width: 60px;
+      height: 60px;
+      background: #FFD527;
+      position: absolute;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      z-index: 0;
+    }
+
+    .content-container {
+      position: relative;
+      z-index: 10;
+    }
+
+    body {
+      margin: 0;
+      height: 100vh;
+      overflow: auto;
+      background: linear-gradient(180deg, #01AD18, #00470A);
+    }
+
+    #group {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    .circle-image {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      position: fixed;
+      top: 150px;
+      right: 150px;
+      z-index: 20;
+      border: 4px solid white;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+    }
   </style>
 </head>
-<body class="bg-gradient-to-br from-yellow-200 to-green-300 h-screen flex items-center justify-center p-4">
-  <div class="bg-white p-8 md:p-12 rounded-xl shadow-2xl text-center max-w-lg mx-auto">
+<body class="flex items-center justify-center p-4">
+  <!-- Zigzag animation container -->
+  <div id="group"></div>
+  
+  <!-- Circle image that spins -->
+  <img src="C:\Users\Naufal\Downloads\Untitled21_20250810185546.png" 
+       alt="Profile" 
+       class="circle-image animate-spin-slow">
+  
+  <!-- Welcome content -->
+  <div class="content-container bg-[#F1EAD1] p-8 md:p-12 rounded-xl shadow-2xl text-center max-w-lg mx-auto">
     <h1 class="text-3xl md:text-4xl font-bold text-green-700 mb-4">
       Selamat Datang di Sistem E-Voting UKMR
     </h1>
@@ -33,5 +102,96 @@
       Menuju Halaman Login
     </a>
   </div>
+
+  <script>
+    // Zigzag animation code
+    const group = document.getElementById("group");
+    const squareSize = 60;
+    let totalSquares, trackLength;
+    let offsetX = 0;
+    const squares = [];
+
+    function createSquares() {
+      group.innerHTML = "";
+      squares.length = 0;
+      offsetX = 0;
+
+      totalSquares = Math.ceil(window.innerWidth / squareSize) + 2;
+      trackLength = totalSquares * squareSize;
+
+      // Bottom row (moving left)
+      for (let set = 0; set < 2; set++) {
+        for (let i = 0; i < totalSquares; i++) {
+          const square = document.createElement("div");
+          square.className = "square";
+
+          let x = i * squareSize + set * trackLength;
+          let y = (i % 2 === 0) 
+            ? window.innerHeight - 120 
+            : window.innerHeight - 60;
+
+          square.style.left = x + "px";
+          square.style.top = y + "px";
+          
+          group.appendChild(square);
+          squares.push({ el: square, baseX: x, y, dir: "left" });
+        }
+      }
+
+      // Top row (moving right)
+      for (let set = 0; set < 2; set++) {
+        for (let i = 0; i < totalSquares; i++) {
+          const square = document.createElement("div");
+          square.className = "square";
+
+          let x = i * squareSize - set * trackLength;
+          let y = (i % 2 === 0) 
+            ? 60 
+            : 0;
+
+          square.style.left = x + "px";
+          square.style.top = y + "px";
+          
+          group.appendChild(square);
+          squares.push({ el: square, baseX: x, y, dir: "right" });
+        }
+      }
+    }
+
+    createSquares();
+    window.addEventListener("resize", createSquares);
+
+    function move() {
+      offsetX += 0.2;
+      
+      if (offsetX > trackLength) {
+        offsetX = 0;
+      }
+
+      squares.forEach(sq => {
+        let x;
+        if (sq.dir === "left") {
+          x = sq.baseX - offsetX;
+        } else {
+          x = sq.baseX + offsetX;
+        }
+        
+        if (x < -squareSize) {
+          x += 2 * trackLength;
+          sq.baseX += 2 * trackLength;
+        } else if (x > window.innerWidth + squareSize) {
+          x -= 2 * trackLength;
+          sq.baseX -= 2 * trackLength;
+        }
+        
+        sq.el.style.left = x + "px";
+        sq.el.style.top = sq.y + "px";
+      });
+
+      requestAnimationFrame(move);
+    }
+
+    move();
+  </script>
 </body>
 </html>
