@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Hasil Pemilu UKMR</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold text-center mb-8 text-green-700">Hasil Voting Ketua UKMR 2025</h1>
+    <div class="mb-4">
+      <h2 class="text-xl font-semibold">Total Suara Masuk: <span id="totalVotes">0</span></h2>
+    </div>
+    <canvas id="voteChart"></canvas>
+  </div>
+  <script src="admin.js"></script>
+</body>
+</html>
