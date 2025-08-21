@@ -10,16 +10,10 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
       body: JSON.stringify({ nim, password })
     });
     if (!res.ok) throw new Error();
-    const { token, is_admin } = await res.json();
+    const { token } = await res.json();
     localStorage.setItem('token', token);
 
-    // arahin ke halaman admin klo dia admin
-    if (is_admin) {
-        window.location.href = 'admin.html';
-    } else {
-        window.location.href = 'vote.html';
-    }
-
+    window.location.href = 'vote.html';
   } catch {
     document.getElementById('error').classList.remove('hidden');
   }
